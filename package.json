@@ -28,7 +28,6 @@
     "connected-react-router": "^4.2.1",
     "denodeify": "^1.2.1",
     "express": "^4.15.3",
-    "express-ws": "^3.0.0",
     "fastpriorityqueue": "^0.2.4",
     "helmet": "^3.6.1",
     "history": "^4.6.2",
@@ -64,7 +63,8 @@
     "url-polyfill": "^1.0.5",
     "useragent": "^2.1.13",
     "warning": "^3.0.0",
-    "winston": "^2.3.1"
+    "winston": "^2.3.1",
+    "ws": "^3.0.0"
   },
   "devDependencies": {
     "babel-cli": "^6.24.1",

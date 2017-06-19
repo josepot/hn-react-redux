@@ -2,7 +2,8 @@ import R from 'ramda';
 import {END, eventChannel} from 'redux-saga';
 import {MAX_API_TRIES} from 'config';
 
-const delay = ms => val => new Promise(resolve => setTimeout(() => resolve(val), ms));
+const delay = ms => val =>
+  new Promise(resolve => setTimeout(() => resolve(val), ms));
 
 export const apiFetch = (path, nTries = 1) =>
   fetch(`/api${path}`)
@@ -28,11 +29,20 @@ export const apiFetch = (path, nTries = 1) =>
 const {protocol, host} = window.location;
 const wsProtocol = protocol === 'https:' ? 'wss' : 'ws';
 
+let ws;
 export const subscription = (path, transformation) =>
   eventChannel(emit => {
-    const ws = new WebSocket(`${wsProtocol}://${host}/api/subscription${path}`);
+    const url = `/api/subscription${path}`;
+    if (ws && ws.readyState < 2) {
+      const sendUrl = () => ws.send(url);
+      if (ws.readyState === 0) {
+        ws.onopen = sendUrl;
+      } else sendUrl();
+    } else {
+      ws = new WebSocket(`${wsProtocol}://${host}${url}`);
+    }
 
     ws.onmessage = R.pipe(R.prop('data'), JSON.parse, transformation, emit);
     ws.onclose = () => emit(END);
-    return () => ws.close();
+    return Function.prototype;
   });
