@@ -1,0 +1,41 @@
+{
+  env: {
+    "development": {
+      "plugins": ["react-hot-loader/babel"],
+      "presets": [ ["env", { "modules": false, "loose": true, "targets": { "chrome": "54" } }] ]
+    },
+    "build.server": {
+      "presets": [ ["env", { "modules": "commonjs", "loose": false, "targets": { "node": "7.5" } }] ]
+    },
+    "build.chrome": {
+      "presets": [ ["env", { "modules": false, "loose": true, "targets": { "chrome": "54" } }] ]
+    },
+    "build.edge": {
+      "presets": [ ["env", { "modules": false, "loose": true, "targets": { "edge": "14" } }] ]
+    },
+    "build.safari": {
+      "presets": [ ["env", { "modules": false, "loose": true, "targets": { "safari": "10" } }] ]
+    },
+    "build.firefox": {
+      "presets": [ ["env", { "modules": false, "loose": true, "targets": { "firefox": "53" } }] ]
+    },
+    "build.fallback": {
+      "presets": [ ["env", { "modules": false, "loose": true,
+        "targets": { "browsers": ["last 2 versions", "safari >= 7", "ie >= 10"] }
+      }] ], "plugins": ["babel-plugin-transform-class-properties"]
+    }
+  },
+  plugins: [
+    "ramda",
+    "babel-plugin-transform-class-properties",
+    "transform-export-extensions",
+    "transform-object-rest-spread",
+    "transform-react-jsx",
+    ["module-resolver", {
+      "root": ["./src/", "./src/client"],
+    }],
+    ["transform-es2015-block-scoping", {
+      "throwIfClosureRequired": true
+    }],
+  ]
+}

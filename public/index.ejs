@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>React-Redux HN</title><%= manifestEntries %>
+    <link rel="icon" type="image/png"  href="/static/favicon.png" />
+    <style>
+      html {
+        display: block;
+        font-size: 14px;
+        height: 100%;
+      }
+
+      body {
+        background-color: #F5F5F5;
+        font-family: 'Open Sans', 'Helvetica Neue', Arial, Helvetica, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        margin: 0;
+        padding: 0;
+        overflow-x: hidden;
+        min-width: 320px;
+        font-size: 14px;
+        line-height: 1.4285em;
+      }
+
+      a { text-decoration: none; }
+
+      /*******************************
+                   Headers
+      *******************************/
+
+      h1,
+      h2,
+      h3,
+      h4,
+      h5 {
+        font-family: 'Open Sans', 'Helvetica Neue', Arial, Helvetica, sans-serif;
+        line-height: 1.2857em;
+        margin: calc(2rem -  0.14285em ) 0em 1rem;
+        font-weight: 300;
+        padding: 0em;
+      }
+      h1 {
+        min-height: 1rem;
+        font-size: 2rem;
+      }
+      h2 {
+        font-size: 1.714rem;
+      }
+      h3 {
+        font-size: 1.28rem;
+      }
+      h4 {
+        font-size: 1.071rem;
+      }
+      h5 {
+        font-size: 1rem;
+      }
+      h1:first-child,
+      h2:first-child,
+      h3:first-child,
+      h4:first-child,
+      h5:first-child {
+        margin-top: 0em;
+      }
+      h1:last-child,
+      h2:last-child,
+      h3:last-child,
+      h4:last-child,
+      h5:last-child {
+        margin-bottom: 0em;
+      }
+
+      @keyframes scale {
+        30% {
+          -webkit-transform: scale(.3);
+          transform: scale(.3)
+        }
+
+        100% {
+          -webkit-transform: scale(1);
+          transform: scale(1)
+        }
+      }
+    </style>
+    <style id="styletronStyles"><%= css %></style>
+  </head>
+  <body>
+    <div id="root"><%= html %></div>
+    <script>
+      window.INITIAL_STATE = <%= initialState %>;
+    </script>
+    <% for (var idx in jsFiles) { %>
+    <script src="<%= jsFiles[idx] %>"></script>
+    <% } %>
+  </body>
+</html>
