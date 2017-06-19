@@ -1,27 +1,30 @@
 const compression = require('compression');
 const express = require('express');
 const helmet = require('helmet');
+const http = require('http');
 const throng = require('throng');
-const expressWs = require('express-ws');
+const WS = require('ws');
 
 const backgroundTask = require('./storage/background-task');
 
-const sslEnforcer = require('./plugins/ssl-enforce');
 const classifyBrowser = require('./plugins/classifyBrowser');
 const nodeAppServer = require('./app-server');
+const wsConnection = require('./subscriptions');
 
-const start = (id) => {
+const start = id => {
   const app = express();
-  expressWs(app);
   const PORT = (parseInt(process.env.PORT, 10) || 1917) + (id - 1);
 
-  app.use(sslEnforcer);
   app.use(helmet());
   app.use(compression());
   app.use(classifyBrowser());
 
   nodeAppServer(app);
-  app.listen(
+  const server = http.createServer(app);
+  const wss = new WS.Server({server});
+  wss.on('connection', wsConnection);
+
+  server.listen(
     PORT,
     err =>
       err

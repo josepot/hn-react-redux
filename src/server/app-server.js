@@ -12,9 +12,6 @@ const {
   getListPage,
   getDiscussion,
   getUser,
-  onListUpdate,
-  onDiscussionUpdate,
-  onUserUpdate,
 } = require('./storage/background-sync.js');
 const render = require('../client/entries/server/index.js').default;
 
@@ -22,6 +19,7 @@ const send404 = res => () => {
   res.status(404);
   res.send({error: 'Not found'});
 };
+
 function apiList(req, res) {
   const {listId, page} = req.params;
   getListPage(listId.toLowerCase(), parseInt(page, 10))
@@ -114,63 +112,8 @@ function serviceWorker(req, res) {
   });
 }
 
-const subscriptions = {};
-const clearSubscriptors = (...keys) =>
-  (subscriptions[keys.join('-')] = (subscriptions[keys.join('-')] || [])
-    .filter(ws => ws.readyState < 2));
-const getSubscription = (...keys) => subscriptions[keys.join('-')] || [];
-const addSubscription = (ws, ...keys) => {
-  const t = getSubscription(keys.join('-'));
-  t.push(ws);
-  subscriptions[keys.join('-')] = t;
-};
-
-const wsList = (ws, req) => {
-  const {listId, page} = req.params;
-  addSubscription(ws, 'list', listId, page);
-};
-
-onListUpdate((listId, page, list, items) => {
-  const subscriptors = clearSubscriptors('list', listId, page);
-  const message = JSON.stringify({list, items});
-
-  subscriptors.forEach(ws => {
-    if (ws.readyState === 1) ws.send(message);
-  });
-});
-
-const wsDiscussion = (ws, req) => {
-  addSubscription(ws, 'discussion', req.params.rootId);
-};
-
-onDiscussionUpdate((rootId, items) => {
-  const message = JSON.stringify({items});
-  const subscriptors = clearSubscriptors('discussion', rootId);
-
-  subscriptors.forEach(ws => {
-    if (ws.readyState === 1) ws.send(message);
-  });
-});
-
-const wsUser = (ws, req) => {
-  addSubscription(ws, 'user', req.params.userId);
-};
-
-onUserUpdate((userId, user) => {
-  const message = JSON.stringify({user});
-  const subscriptors = clearSubscriptors('user', userId);
-
-  subscriptors.forEach(ws => {
-    if (ws.readyState === 1) ws.send(message);
-  });
-});
-
 module.exports = app => {
   app.get('/health', (req, res) => res.send({status: 'ok'}));
-
-  app.ws('/api/subscription/list/:listId/:page', wsList);
-  app.ws('/api/subscription/discussion/:rootId', wsDiscussion);
-  app.ws('/api/subscription/user/:userId', wsUser);
 
   app.get('/api/list/:listId/:page', apiList);
   app.get('/api/discussion/:rootId', apiDiscussion);
