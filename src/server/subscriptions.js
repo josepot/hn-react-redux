@@ -21,7 +21,7 @@ const getSubscriptionIdForResourceId = resourceId => {
     availableIds[resourceId] = [];
     return 1;
   }
-  return availableIds[resourceId].pop() || ++maxIdx[resourceId];
+  return availableIds[resourceId].pop() || ++maxIds[resourceId];
 };
 
 const subscribeMeTo = (ws, resourceId) => {
