@@ -13,7 +13,7 @@ import {delay} from 'redux-saga';
 import {UPDATE_FREQUENCY} from 'config';
 import {apiFetch, subscription} from 'api';
 import getNow from 'lib/get-now-unix-time';
-import {LOCATION_CHANGED} from 'modules/router';
+import {getLocationPath, LOCATION_CHANGED} from 'modules/router';
 import {ACTIONS, onResourcesNeeded, onResourcesReceived} from './actions';
 import {
   getIsOngoing,
@@ -42,7 +42,16 @@ function* requestResources() {
   yield put(onResourcesReceived(path, transformation(payload)));
 }
 
+function* updatePageWhenSwUpdate() {
+  if (window.swUpdate) {
+    const path = yield select(getLocationPath);
+    window.location = path;
+  }
+}
+
 function* handleLocationChange() {
+  yield call(updatePageWhenSwUpdate);
+
   const resources = yield select(getLocationResources);
   if (!resources) return;
 

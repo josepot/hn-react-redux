@@ -20,7 +20,13 @@ if (POLYFILL_URL) {
 }
 
 if (ALLOW_OFFLINE) {
-  require('offline-plugin/runtime').install();
+  const OfflinePluginRuntime = require('offline-plugin/runtime');
+  OfflinePluginRuntime.install({
+    onUpdateReady: () => OfflinePluginRuntime.applyUpdate(),
+    onUpdate: () => {
+      window.swUpdate = true;
+    },
+  });
 }
 
 require('./render.js');
