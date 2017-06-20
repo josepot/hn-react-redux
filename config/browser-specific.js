@@ -86,9 +86,11 @@ const browserSpecificPlugins = {
         '**/*.css.br',
         '**/*.css.gzip',
       ],
-      autoUpdate: false,
+      updateStrategy: 'changed',
+      autoUpdate: 1000 * 60 * 10,
       AppCache: false,
       ServiceWorker: {
+        events: true,
         entry: './src/client/sw-handler.js',
         publicPath: '/sw.js',
       },
