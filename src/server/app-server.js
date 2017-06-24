@@ -3,10 +3,10 @@ const path = require('path');
 const fs = require('fs');
 const R = require('ramda');
 const lodashTemplate = require('lodash.template');
-const {BROWSERS, COLORS, LISTS} = require('../config.js');
+const {COLORS, LISTS} = require('../config.js');
 
 const staticFiles = require('./static-files.js');
-const resources = require('./resources.js');
+const jsAssets = require('./js-assets.js');
 
 const {
   getListPage,
@@ -40,8 +40,9 @@ const pageTemplate = lodashTemplate(
 );
 
 const getShellRendered = R.once(() =>
-  Promise.resolve(render('/shell', {lists: {}, items: {}, users: {}}))
-    .then(R.omit(['initialState']))
+  Promise.resolve(render('/shell', {lists: {}, items: {}, users: {}})).then(
+    R.omit(['initialState'])
+  )
 );
 
 function renderPage(req, res, next) {
@@ -63,17 +64,15 @@ function renderPage(req, res, next) {
   }
 
   return promise.then(({html, css, initialState}) => {
-    const {application, vendor} = resources[req.userAgentType];
-    const jsFiles = [
-      `/dist/${req.userAgentType}/${vendor[0]}`,
-      `/dist/${req.userAgentType}/${application[0]}`,
-    ];
+    const {application, vendor} = jsAssets[req.userAgentType];
+    const jsFiles = [vendor, application].map(
+      fileName => `/dist/${req.userAgentType}/${fileName}`
+    );
 
-    const manifestEntries = req.userAgentType === BROWSERS.CHROME
-      ? `
-    <meta name="theme-color" content="${COLORS.PRIMARY.NORMAL}" />
-    <link rel="manifest" href="/dist/chrome/manifest.json" />`
-      : '';
+    const manifestEntries = `
+<meta name="theme-color" content="${COLORS.PRIMARY.NORMAL}" />
+<link rel="manifest" href="/dist/${req.userAgentType}/manifest.json" />
+`;
 
     res.writeHead(200, {
       'Content-Type': 'text/html; charset=utf-8',
@@ -100,16 +99,21 @@ function renderPage(req, res, next) {
 }
 
 function serviceWorker(req, res) {
-  fs.readFile(path.resolve('dist', 'chrome', 'sw.js'), 'binary', (err, dta) => {
-    res.writeHead(200, {
-      'Content-Type': 'application/javascript; charset=utf-8',
-      'Timing-Allow-Origin': '*',
-      'Access-Control-Allow-Credentials': 'true',
-      'Access-Control-Allow-Origin': '*',
-    });
+  fs.readFile(
+    path.resolve('dist', req.userAgentType, 'sw.js'),
+    'binary',
+    (err, dta) => {
+      res.writeHead(200, {
+        'Cache-Control': 'max-age=0',
+        'Content-Type': 'application/javascript; charset=utf-8',
+        'Timing-Allow-Origin': '*',
+        'Access-Control-Allow-Credentials': 'true',
+        'Access-Control-Allow-Origin': '*',
+      });
 
-    res.end(dta, 'binary');
-  });
+      res.end(dta, 'binary');
+    }
+  );
 }
 
 module.exports = app => {

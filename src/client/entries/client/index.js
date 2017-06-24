@@ -19,13 +19,9 @@ if (POLYFILL_URL) {
   require('url-polyfill');
 }
 
-if (ALLOW_OFFLINE) {
-  const OfflinePluginRuntime = require('offline-plugin/runtime');
-  OfflinePluginRuntime.install({
-    onUpdateReady: () => OfflinePluginRuntime.applyUpdate(),
-    onUpdate: () => {
-      window.swUpdate = true;
-    },
+if (navigator.serviceWorker) {
+  navigator.serviceWorker.register('/sw.js').then(reg => {
+    setInterval(() => reg.update(), 1000 * 60 * 30);
   });
 }
 

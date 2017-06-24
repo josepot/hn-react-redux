@@ -2,6 +2,7 @@ import {
   all,
   call,
   cancelled,
+  fork,
   select,
   take,
   takeEvery,
@@ -11,11 +12,12 @@ import {
 import {delay} from 'redux-saga';
 
 import {UPDATE_FREQUENCY} from 'config';
-import {apiFetch, subscription} from 'api';
+import {apiFetch, sendToServiceWorker, subscription} from 'api';
 import getNow from 'lib/get-now-unix-time';
-import {getLocationPath, LOCATION_CHANGED} from 'modules/router';
+import {LOCATION_CHANGED} from 'modules/router';
 import {ACTIONS, onResourcesNeeded, onResourcesReceived} from './actions';
 import {
+  getAreResourcesEmpty,
   getIsOngoing,
   getLocationLatestUpdate,
   getLocationResources,
@@ -42,16 +44,7 @@ function* requestResources() {
   yield put(onResourcesReceived(path, transformation(payload)));
 }
 
-function* updatePageWhenSwUpdate() {
-  if (window.swUpdate) {
-    const path = yield select(getLocationPath);
-    window.location = path;
-  }
-}
-
 function* handleLocationChange() {
-  yield call(updatePageWhenSwUpdate);
-
   const resources = yield select(getLocationResources);
   if (!resources) return;
 
@@ -77,10 +70,26 @@ function* handleLocationChange() {
   }
 }
 
+function* handleInit() {
+  if (navigator.serviceWorker) {
+    const areResourcesEmpty = yield select(getAreResourcesEmpty);
+
+    if (!areResourcesEmpty) {
+      // It's initial render after SSR
+      const {path, getResponseFromInitialState} = yield select(
+        getLocationResources
+      );
+      const data = yield select(getResponseFromInitialState);
+      yield fork(sendToServiceWorker, `/api${path}`, data);
+    }
+  }
+  yield put({type: 'INIT_RESOURCES'});
+}
+
 export default function* saga() {
   yield all([
     takeEvery(ACTIONS.RESOURCES_NEEDED, requestResources),
     takeLatest([LOCATION_CHANGED, 'INIT_RESOURCES'], handleLocationChange),
-    put({type: 'INIT_RESOURCES'}),
+    call(handleInit),
   ]);
 }
