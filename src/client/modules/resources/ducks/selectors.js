@@ -8,67 +8,27 @@ const getResources = R.prop('resources');
 export const getLists = createSelector(getResources, R.prop('lists'));
 export const getItems = createSelector(getResources, R.prop('items'));
 export const getUsers = createSelector(getResources, R.prop('users'));
+export const getListPages = createSelector(getResources, R.prop('listPages'));
 export const getTimestamps = createSelector(getResources, R.prop('timestamps'));
 export const getOngoing = createSelector(getResources, R.prop('ongoing'));
 
 export const getAreResourcesEmpty = createSelector(getTimestamps, R.isEmpty);
 
-const defaultTransformation = ({items = {}, lists = {}, users = {}}) => ({
-  items,
-  lists,
-  users,
-});
-
-const listTransformation = listId => res =>
-  res ? {lists: {[listId]: res.list}, items: res.items} : {};
-const userTransformation = res =>
-  res ? {users: {[res.user.id]: res.user}} : {};
-const itemTransformation = res => res || {};
-
-export const getLocationResources = createSelector([getLocationPath], path => {
+export const getLocationFormalPath = createSelector([getLocationPath], path => {
   const parts = path.split('/').slice(1);
   if (parts.length > 2) return null;
   if (parts[0] === 'item') {
-    return parts[1]
-      ? {
-          path: `/discussion/${parts[1]}`,
-          transformation: R.pipe(itemTransformation, defaultTransformation),
-          getResponseFromInitialState: ({resources}) =>
-            R.pick(['items'], resources),
-        }
-      : null;
+    return parts[1] ? `/discussion/${parts[1]}` : null;
   }
   if (parts[0] === 'user') {
-    return parts[1]
-      ? {
-          path: `/users/${parts[1]}`,
-          transformation: R.pipe(userTransformation, defaultTransformation),
-          getResponseFromInitialState: ({resources}) => ({
-            user: resources.users[parts[1]],
-          }),
-        }
-      : null;
+    return parts[1] ? `/user/${parts[1]}` : null;
   }
   const id = LISTS[parts[0].toLowerCase()];
   if (!id) return null;
 
   const page = parseInt(parts[1] || '1', 10);
-  return !isNaN(page)
-    ? {
-        path: `/list/${id}/${page}`,
-        transformation: R.pipe(listTransformation(id), defaultTransformation),
-        getResponseFromInitialState: ({resources}) => ({
-          list: resources.lists[id],
-          items: resources.items,
-        }),
-      }
-    : null;
+  return !isNaN(page) ? `/list/${id}/${page}` : null;
 });
-
-export const getLocationFormalPath = createSelector(
-  [getLocationResources],
-  resources => resources && resources.path
-);
 
 export const getLocationLatestUpdate = createSelector(
   [getTimestamps, getLocationFormalPath],
@@ -83,26 +43,26 @@ const isLoadingFactory = R.memoize(path =>
 );
 
 const getListsFactory = R.memoize(listId =>
-  createSelector(getLists, R.prop(listId))
+  createSelector(getLists, R.propOr([], listId))
 );
 
-export const getListPageFactory = R.memoize((listId, page) =>
+export const getListTotalPagesFactory = R.memoize(listId =>
+  createSelector([getListsFactory(listId)], list =>
+    Math.ceil(list.length / PAGE_SIZE)
+  )
+);
+
+const getListPageFactory = R.memoize((listId, page) =>
+  createSelector(getListPages, R.propOr(null, `/list/${listId}/${page}`))
+);
+
+export const getListPageItemsFactory = R.memoize((listId, page) =>
   createSelector(
-    [getListsFactory(listId), isLoadingFactory(`/list/${listId}/${page}`)],
-    (list, isLoading) => {
-      if (!R.is(Array, list))
-        return {listItems: null, totalPages: 0, isLoading};
-
-      const from = (page - 1) * PAGE_SIZE;
-      const to = from + PAGE_SIZE;
-      const listItems = list.slice(from, to);
-
-      return {
-        listItems,
-        totalPages: Math.ceil(list.length / PAGE_SIZE),
-        isLoading,
-      };
-    }
+    [
+      getListPageFactory(listId, page),
+      isLoadingFactory(`/list/${listId}/${page}`),
+    ],
+    (listItems, isLoading) => ({listItems, isLoading})
   )
 );
 

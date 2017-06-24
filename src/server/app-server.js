@@ -23,16 +23,33 @@ const send404 = res => () => {
 function apiList(req, res) {
   const {listId, page} = req.params;
   getListPage(listId.toLowerCase(), parseInt(page, 10))
+    .then(({list, items, timestamp}) => ({
+      items,
+      lists: {[listId]: list},
+      users: {},
+      timestamp,
+    }))
     .then(res.json.bind(res))
     .catch(send404(res));
 }
 
 function apiDiscussion(req, res) {
-  getDiscussion(req.params.rootId).then(res.json.bind(res)).catch(send404(res));
+  getDiscussion(req.params.rootId)
+    .then(result => Object.assign(result, {lists: {}, users: {}}))
+    .then(res.json.bind(res))
+    .catch(send404(res));
 }
 
 function apiUser(req, res) {
-  getUser(req.params.userId).then(res.json.bind(res)).catch(send404(res));
+  getUser(req.params.userId)
+    .then(({user, timestamp}) => ({
+      users: {[req.params.userId]: user},
+      lists: {},
+      items: {},
+      timestamp,
+    }))
+    .then(res.json.bind(res))
+    .catch(send404(res));
 }
 
 const pageTemplate = lodashTemplate(
@@ -52,12 +69,15 @@ function renderPage(req, res, next) {
   if (req.route.path === '/shell') {
     promise = getShellRendered();
   } else if (listId && R.prop(listId, LISTS)) {
-    promise = getListPage(listId, parseInt(page, 10)).then(({list, items}) =>
-      render(req.path, {lists: {[listId]: list}, items, users: {}})
+    promise = getListPage(
+      listId,
+      parseInt(page, 10)
+    ).then(({list, items, timestamp}) =>
+      render(req.path, {lists: {[listId]: list}, items, users: {}, timestamp})
     );
   } else if (itemId !== undefined) {
-    promise = getDiscussion(itemId).then(({items}) =>
-      render(req.path, {lists: {}, items, users: {}})
+    promise = getDiscussion(itemId).then(({items, timestamp}) =>
+      render(req.path, {lists: {}, items, users: {}, timestamp})
     );
   } else {
     return next();

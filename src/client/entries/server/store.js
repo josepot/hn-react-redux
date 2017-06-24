@@ -9,7 +9,7 @@ export default (reducer, history, data) => {
   const store = createStore(enhancedReducer);
 
   const path = getLocationFormalPath(store.getState());
-  store.dispatch(onResourcesReceived(path, data));
+  if (data.timestamp) store.dispatch(onResourcesReceived(path, data));
 
   return store;
 };

@@ -1,7 +1,8 @@
 export {
   getLists,
   getItems,
-  getListPageFactory,
+  getListPageItemsFactory,
+  getListTotalPagesFactory,
   getItemFactory,
   getItemLoadingFactory,
 } from './ducks/selectors';

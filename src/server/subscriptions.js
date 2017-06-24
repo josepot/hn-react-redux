@@ -39,15 +39,15 @@ const getResourceIdFromPath = path => {
   if (!path.startsWith('/api/subscription/')) return null;
 
   const [type, id, pageStr] = path.split('/').slice(3);
-  if (type === 'discussion') return id ? `item-${id}` : null;
-  if (type === 'user') return id ? `user-${id}` : null;
+  if (type === 'discussion') return id ? `/discussion/${id}` : null;
+  if (type === 'user') return id ? `/user/${id}` : null;
 
   if (type !== 'list') return null;
 
   const listId = LISTS[id];
   if (!listId) return null;
   const page = parseInt(pageStr || '1', 10);
-  return isNaN(page) ? null : `list-${listId}-${page}`;
+  return isNaN(page) ? null : `/list/${listId}/${page}`;
 };
 
 module.exports = function wsConnection(ws, req) {
@@ -63,13 +63,34 @@ module.exports = function wsConnection(ws, req) {
   });
 };
 
-const sendUpdate = (resourceId, update) =>
-  getSubscriptions(resourceId).forEach(ws => {
-    if (ws.readyState === 1) ws.send(JSON.stringify(update));
+const sendUpdate = (resourceId, update) => {
+  const message = JSON.stringify(Object.assign(update, {resourceId}));
+  return getSubscriptions(resourceId).forEach(ws => {
+    if (ws.readyState === 1) ws.send(message);
   });
+};
 
-onListUpdate((listId, page, list, items) =>
-  sendUpdate(`list-${listId}-${page}`, {list, items})
+onListUpdate((listId, page, list, items, timestamp) =>
+  sendUpdate(`/list/${listId}/${page}`, {
+    lists: {[listId]: list},
+    items,
+    users: {},
+    timestamp,
+  })
 );
-onDiscussionUpdate((rootId, items) => sendUpdate(`item-${rootId}`, {items}));
-onUserUpdate((userId, user) => sendUpdate(`user-${userId}`, {user}));
+onDiscussionUpdate((rootId, items, timestamp) =>
+  sendUpdate(`/discussion/${rootId}`, {
+    lists: {},
+    items,
+    users: {},
+    timestamp,
+  })
+);
+onUserUpdate((userId, user, timestamp) =>
+  sendUpdate(`/user/${userId}`, {
+    lists: {},
+    items: {},
+    users: {[userId]: user},
+    timestamp,
+  })
+);

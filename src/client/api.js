@@ -37,9 +37,8 @@ export const sendToServiceWorker = (endpoint, data) => {
 };
 
 let ws;
-export const subscription = (path, transformation) => {
+export const subscription = path => {
   const subscriptionUrl = `/api/subscription${path}`;
-  const fetchUrl = `/api${path}`;
 
   return eventChannel(emit => {
     if (ws && ws.readyState < 2) {
@@ -52,9 +51,9 @@ export const subscription = (path, transformation) => {
     }
 
     ws.onmessage = ({data: rawData}) => {
-      const data = JSON.parse(rawData);
-      sendToServiceWorker(fetchUrl, data);
-      emit(transformation(data));
+      const {resourceId, ...data} = JSON.parse(rawData);
+      sendToServiceWorker(`/api${resourceId}`, data);
+      emit(data);
     };
     ws.onclose = () => emit(END);
     return Function.prototype;

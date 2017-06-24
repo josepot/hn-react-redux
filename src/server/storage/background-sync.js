@@ -2,6 +2,7 @@
 const R = require('ramda');
 const {sliceListByPage} = require('./common');
 const {LISTS} = require('../../config.js');
+const getNow = require('lib/get-now-unix-time').default;
 
 const listListeners = R.converge(R.zipObj, [
   R.keys,
@@ -49,23 +50,26 @@ const notifyListeners = (dictionary, key, message) => {
 function processListMessage({listId, page, list, items, isUpdate}) {
   data.lists[listId] = list;
   Object.assign(data.items, items);
+  const timestamp = getNow();
   return isUpdate
-    ? listWsCb(listId, page, list, items)
-    : notifyListeners(listListeners[listId], page, {list, items});
+    ? listWsCb(listId, page, list, items, timestamp)
+    : notifyListeners(listListeners[listId], page, {list, items, timestamp});
 }
 
 function processDiscussionMessage({rootId, items, isUpdate}) {
   Object.assign(data.items, items);
+  const timestamp = getNow();
   return isUpdate
-    ? discussionWsCb(rootId, items)
-    : notifyListeners(discussionListeners, rootId, {items});
+    ? discussionWsCb(rootId, items, timestamp)
+    : notifyListeners(discussionListeners, rootId, {items, timestamp});
 }
 
 function processUserMessage({userId, user, isUpdate}) {
   data.users[userId] = user;
+  const timestamp = getNow();
   return isUpdate
-    ? userWsCb(userId, user)
-    : notifyListeners(userListeners, userId, {user});
+    ? userWsCb(userId, user, timestamp)
+    : notifyListeners(userListeners, userId, {user, timestamp});
 }
 
 const processorsByType = {
@@ -94,10 +98,15 @@ const getListPage = (listId, page) => {
 
   const pageItemIds = sliceListByPage(list, page);
   const pageItems = pageItemIds.map(itemId => data.items[itemId]);
+  const timestamp = getNow();
 
   return pageItems.some(R.isNil)
     ? requestListPage(listId, page)
-    : Promise.resolve({list, items: R.zipObj(pageItemIds, pageItems)});
+    : Promise.resolve({
+        list,
+        items: R.zipObj(pageItemIds, pageItems),
+        timestamp,
+      });
 };
 
 const getDescendants = root =>
@@ -115,12 +124,14 @@ function getDiscussion(rootId) {
     return requestDiscussion(rootId);
   }
 
-  return Promise.resolve({items: getDescendants(root)});
+  const timestamp = getNow();
+  return Promise.resolve({items: getDescendants(root), timestamp});
 }
 
 function getUser(userId) {
   const user = data.users[userId];
-  return user ? Promise.resolve({user}) : requestUser(userId);
+  const timestamp = getNow();
+  return user ? Promise.resolve({user, timestamp}) : requestUser(userId);
 }
 
 module.exports = {

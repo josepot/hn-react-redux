@@ -1,4 +1,3 @@
-import getNow from 'lib/get-now-unix-time';
 import createTypes from 'lib/create-types';
 
 export const ACTIONS = createTypes('RESOURCES', [
@@ -13,6 +12,5 @@ export const onResourcesNeeded = path => ({
 export const onResourcesReceived = (path, payload) => ({
   type: ACTIONS.RESOURCES_RECEIVED,
   path,
-  timestamp: getNow(),
   ...payload,
 });
