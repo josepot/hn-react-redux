@@ -11,6 +11,8 @@ export const getUsers = createSelector(getResources, R.prop('users'));
 export const getTimestamps = createSelector(getResources, R.prop('timestamps'));
 export const getOngoing = createSelector(getResources, R.prop('ongoing'));
 
+export const getAreResourcesEmpty = createSelector(getTimestamps, R.isEmpty);
+
 const defaultTransformation = ({items = {}, lists = {}, users = {}}) => ({
   items,
   lists,
@@ -31,6 +33,8 @@ export const getLocationResources = createSelector([getLocationPath], path => {
       ? {
           path: `/discussion/${parts[1]}`,
           transformation: R.pipe(itemTransformation, defaultTransformation),
+          getResponseFromInitialState: ({resources}) =>
+            R.pick(['items'], resources),
         }
       : null;
   }
@@ -39,6 +43,9 @@ export const getLocationResources = createSelector([getLocationPath], path => {
       ? {
           path: `/users/${parts[1]}`,
           transformation: R.pipe(userTransformation, defaultTransformation),
+          getResponseFromInitialState: ({resources}) => ({
+            user: resources.users[parts[1]],
+          }),
         }
       : null;
   }
@@ -50,6 +57,10 @@ export const getLocationResources = createSelector([getLocationPath], path => {
     ? {
         path: `/list/${id}/${page}`,
         transformation: R.pipe(listTransformation(id), defaultTransformation),
+        getResponseFromInitialState: ({resources}) => ({
+          list: resources.lists[id],
+          items: resources.items,
+        }),
       }
     : null;
 });

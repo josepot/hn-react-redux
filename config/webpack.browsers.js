@@ -3,6 +3,8 @@ const webpack = require('webpack');
 const BabiliPlugin = require('babili-webpack-plugin');
 const CompressionPlugin = require('compression-webpack-plugin');
 const WebpackCleanupPlugin = require('webpack-cleanup-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
+const SwPlugin = require('./custom-sw-build-plugin');
 const {
   browserProperties,
   browserSpecificPlugins,
@@ -40,7 +42,7 @@ module.exports = {
       {
         test: /\.svg$/,
         use: ['svg-inline-loader'],
-      }
+      },
     ],
   },
   plugins: [
@@ -67,6 +69,10 @@ module.exports = {
       algorithm: 'zopfli',
       test: /\.(js)$/,
     }),
+    new CopyWebpackPlugin([{from: 'public/manifest.json'}], {
+      copyUnmodified: true,
+    }),
+    new SwPlugin({browser: BROWSER_NAME}),
     ...(browserSpecificPlugins[BROWSER_NAME] || []),
   ],
 };

@@ -1,4 +1,3 @@
-import R from 'ramda';
 import {END, eventChannel} from 'redux-saga';
 import {MAX_API_TRIES} from 'config';
 
@@ -29,20 +28,35 @@ export const apiFetch = (path, nTries = 1) =>
 const {protocol, host} = window.location;
 const wsProtocol = protocol === 'https:' ? 'wss' : 'ws';
 
+export const sendToServiceWorker = (endpoint, data) => {
+  if (navigator.serviceWorker) {
+    navigator.serviceWorker.ready.then(({active}) =>
+      active.postMessage(JSON.stringify({endpoint, data}))
+    );
+  }
+};
+
 let ws;
-export const subscription = (path, transformation) =>
-  eventChannel(emit => {
-    const url = `/api/subscription${path}`;
+export const subscription = (path, transformation) => {
+  const subscriptionUrl = `/api/subscription${path}`;
+  const fetchUrl = `/api${path}`;
+
+  return eventChannel(emit => {
     if (ws && ws.readyState < 2) {
-      const sendUrl = () => ws.send(url);
+      const sendUrl = () => ws.send(subscriptionUrl);
       if (ws.readyState === 0) {
         ws.onopen = sendUrl;
       } else sendUrl();
     } else {
-      ws = new WebSocket(`${wsProtocol}://${host}${url}`);
+      ws = new WebSocket(`${wsProtocol}://${host}${subscriptionUrl}`);
     }
 
-    ws.onmessage = R.pipe(R.prop('data'), JSON.parse, transformation, emit);
+    ws.onmessage = ({data: rawData}) => {
+      const data = JSON.parse(rawData);
+      sendToServiceWorker(fetchUrl, data);
+      emit(transformation(data));
+    };
     ws.onclose = () => emit(END);
     return Function.prototype;
   });
+};

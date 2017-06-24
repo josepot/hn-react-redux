@@ -36,7 +36,6 @@
     "node-fetch": "^1.7.0",
     "object-assign-polyfill": "^0.1.0",
     "object.values": "^1.0.4",
-    "offline-plugin": "^4.8.1",
     "promise-polyfill": "^6.0.2",
     "prop-types": "^15.5.10",
     "ramda": "^0.24.1",
