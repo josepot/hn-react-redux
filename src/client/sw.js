@@ -1,5 +1,5 @@
 const assets = []; // The plugin will replace this line with the correct assets
-const CACHE = 'hn-pwa-api';
+const CACHE = 'hn-pwa-api-v2';
 
 const resources = ['/shell'];
 // INSTALL
@@ -13,18 +13,24 @@ self.addEventListener('install', event => {
 });
 
 // ACTIVATE
-self.addEventListener('activate', event => {
-  event.waitUntil(self.clients.claim());
-});
+self.addEventListener('activate', event =>
+  event.waitUntil(() => self.clients.claim())
+);
 
-function fetchOrCache(originalFetch, cache) {
+function fetchOrCache(originalFetch, cache, postToClient) {
   const fetch = originalFetch.then(r => r.clone());
   return cache.then(
     cacheResponse =>
       !cacheResponse
         ? fetch
         : Promise.race([new Promise(res => setTimeout(res, 300)), fetch])
-            .then(fetchResponse => fetchResponse || cacheResponse)
+            .then(fetchResponse => {
+              if (!fetchResponse) {
+                fetch.then(res => res.status === 200 && postToClient(res));
+                return cacheResponse;
+              }
+              return fetchResponse;
+            })
             .catch(() => cacheResponse)
   );
 }
@@ -50,7 +56,17 @@ self.addEventListener('fetch', evt => {
     });
   } else if (pathname.startsWith('/api')) {
     finalPromise = fetch(evt.request);
-    response = fetchOrCache(finalPromise, fromCache(evt.request));
+
+    const postToClient = res =>
+      Promise.all([
+        self.clients.get(evt.clientId),
+        res.json(),
+      ]).then(([client, data]) =>
+        client.postMessage(
+          JSON.stringify(Object.assign(data, {path: pathname.substr(4)}))
+        )
+      );
+    response = fetchOrCache(finalPromise, fromCache(evt.request), postToClient);
   } else {
     response = fromCache('/shell');
   }

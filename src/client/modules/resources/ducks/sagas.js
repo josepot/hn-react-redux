@@ -9,7 +9,7 @@ import {
   takeLatest,
   put,
 } from 'redux-saga/effects';
-import {delay} from 'redux-saga';
+import {delay, END, eventChannel} from 'redux-saga';
 
 import {UPDATE_FREQUENCY} from 'config';
 import {apiFetch, sendToServiceWorker, subscription} from 'api';
@@ -20,7 +20,7 @@ import {
   getAreResourcesEmpty,
   getIsOngoing,
   getLocationLatestUpdate,
-  getLocationResources,
+  getLocationFormalPath,
 } from './selectors';
 
 function* requestResourcesWhenNeeded() {
@@ -37,23 +37,59 @@ function* requestResourcesWhenNeeded() {
 }
 
 function* requestResources() {
-  const locationResources = yield select(getLocationResources);
-  if (!locationResources) return;
-  const {path, transformation} = locationResources;
+  const path = yield select(getLocationFormalPath);
+  if (!path) return;
   const payload = yield call(apiFetch, path);
-  yield put(onResourcesReceived(path, transformation(payload)));
+  yield put(onResourcesReceived(path, payload));
+}
+
+const getActiveSw = () =>
+  navigator.serviceWorker.ready.then(() => navigator.serviceWorker);
+
+const createSwListenerChannel = sw =>
+  eventChannel(emit => {
+    function onMessage({data}) {
+      emit(JSON.parse(data));
+    }
+    function onStateChange({target: {state}}) {
+      if (state === 'redundant') emit(END);
+    }
+    sw.addEventListener('message', onMessage);
+    sw.addEventListener('statechange', onStateChange);
+
+    return () => {
+      sw.removeEventListener('message', onMessage);
+      sw.removeEventListener('statechange', onStateChange);
+    };
+  });
+
+function* getUpdatesFromSw() {
+  if (!navigator.serviceWorker) return;
+
+  const sw = yield call(getActiveSw);
+  const chan = yield call(createSwListenerChannel, sw);
+  try {
+    while (1) {
+      const {path, ...payload} = yield take(chan);
+      yield put(onResourcesReceived(path, payload));
+    }
+  } finally {
+    if (yield cancelled()) {
+      chan.close();
+    } else {
+      yield fork(getUpdatesFromSw);
+    }
+  }
 }
 
 function* handleLocationChange() {
-  const resources = yield select(getLocationResources);
-  if (!resources) return;
-
-  const {path, transformation} = resources;
+  const path = yield select(getLocationFormalPath);
+  if (!path) return;
 
   let chan;
-  yield call(requestResourcesWhenNeeded, path);
+  yield call(requestResourcesWhenNeeded);
   try {
-    chan = yield call(subscription, path, transformation);
+    chan = yield call(subscription, path);
     while (1) {
       const payload = yield take(chan);
       yield put(onResourcesReceived(path, payload));
@@ -76,10 +112,15 @@ function* handleInit() {
 
     if (!areResourcesEmpty) {
       // It's initial render after SSR
-      const {path, getResponseFromInitialState} = yield select(
-        getLocationResources
+      const path = yield select(getLocationFormalPath);
+      const data = yield select(
+        ({resources: {items, users, lists, timestamps}}) => ({
+          timestamp: timestamps[path],
+          items,
+          users,
+          lists,
+        })
       );
-      const data = yield select(getResponseFromInitialState);
       yield fork(sendToServiceWorker, `/api${path}`, data);
     }
   }
@@ -91,5 +132,6 @@ export default function* saga() {
     takeEvery(ACTIONS.RESOURCES_NEEDED, requestResources),
     takeLatest([LOCATION_CHANGED, 'INIT_RESOURCES'], handleLocationChange),
     call(handleInit),
+    call(getUpdatesFromSw),
   ]);
 }

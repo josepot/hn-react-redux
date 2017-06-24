@@ -6,18 +6,16 @@ import {
   mapProps,
   renderComponent,
   setDisplayName,
-  withProps,
 } from 'recompose';
 
-import {PAGE_SIZE, LISTS, LISTS_ORDER} from 'config';
-import withDiffProps from 'lib/withDiffProps';
-import {getListPageFactory} from 'modules/resources';
+import {PAGE_SIZE, LISTS} from 'config';
+import {getListPageItemsFactory} from 'modules/resources';
 import NotFound from 'modules/NotFound';
 
 import Component from './ListComponent';
 
 const stateToProps = (state, {listId, page}) =>
-  getListPageFactory(listId, page)(state);
+  getListPageItemsFactory(listId, page)(state);
 
 export default compose(
   setDisplayName('ListContainer'),
@@ -32,7 +30,7 @@ export default compose(
   }),
   connect(stateToProps),
   branch(
-    ({ listItems, isLoading }) => listItems === null && !isLoading,
+    ({listItems, isLoading}) => listItems === null && !isLoading,
     renderComponent(NotFound)
   )
 )(Component);

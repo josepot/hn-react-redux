@@ -1,13 +1,16 @@
 import combineDependantReducers from 'combine-dependant-reducers';
 import R from 'ramda';
 import rereducer from 'rereducer';
+import getPageItems from 'lib/get-page-items';
 import {ACTIONS} from './actions';
 
 const timestampsHOReducer = (oldItems, oldLists, oldUsers) =>
   rereducer(
     [
       ACTIONS.RESOURCES_RECEIVED,
-      (state, {items = {}, users = {}, lists = {}, path, timestamp}) => {
+      (timestamps, {items = {}, users = {}, lists = {}, path, timestamp}) => {
+        if (timestamp <= timestamps[path]) return timestamps;
+
         const getNewTimestamps = (newOnes, oldOnes, resourceType) =>
           R.keys(newOnes)
             .filter(id => !R.equals(newOnes[id], oldOnes[id]))
@@ -18,7 +21,7 @@ const timestampsHOReducer = (oldItems, oldLists, oldUsers) =>
             );
 
         return {
-          ...state,
+          ...timestamps,
           ...getNewTimestamps(items, oldItems, 'items'),
           ...getNewTimestamps(lists, oldLists, 'lists'),
           ...getNewTimestamps(users, oldUsers, 'users'),
@@ -29,20 +32,43 @@ const timestampsHOReducer = (oldItems, oldLists, oldUsers) =>
     {}
   );
 
-const getUpdatedOnes = (timestamps, action, resourceType) =>
+const listPagesHOReducer = (prevTimestamps, newTimestamps) =>
+  rereducer(
+    [
+      ACTIONS.RESOURCES_RECEIVED,
+      (listPages = {}, {path, lists}) => {
+        if (
+          path.substr(0, 5) !== '/list' ||
+          newTimestamps[path] === prevTimestamps[path]
+        )
+          return listPages;
+        const [listId, pageStr] = path.split('/').slice(2);
+        return {
+          ...listPages,
+          [path]: getPageItems(lists[listId], parseInt(pageStr, 10)),
+        };
+      },
+    ],
+    {}
+  );
+
+const getUpdatedOnes = (prevTs, newTs, action, resourceType) =>
   R.pipe(
     R.keys,
-    R.filter(id => timestamps[`${resourceType}${id}`] === action.timestamp),
+    R.filter(key => {
+      const id = `${resourceType}${key}`;
+      return newTs[id] !== prevTs[id];
+    }),
     R.pick(R.__, action[resourceType])
   )(action[resourceType]);
 
-const getResourceHOReducer = resourceType => timestamps =>
+const getResourceHOReducer = resourceType => (prevTimestamps, newTimestamps) =>
   rereducer(
     [
       ACTIONS.RESOURCES_RECEIVED,
       (state, action) => ({
         ...state,
-        ...getUpdatedOnes(timestamps, action, resourceType),
+        ...getUpdatedOnes(prevTimestamps, newTimestamps, action, resourceType),
       }),
     ],
     {}
@@ -61,8 +87,9 @@ export default combineDependantReducers({
     '@prev users',
     timestampsHOReducer,
   ],
-  items: ['@next timestamps', getResourceHOReducer('items')],
-  lists: ['@next timestamps', getResourceHOReducer('lists')],
-  users: ['@next timestamps', getResourceHOReducer('users')],
+  items: ['@both timestamps', getResourceHOReducer('items')],
+  lists: ['@both timestamps', getResourceHOReducer('lists')],
+  users: ['@both timestamps', getResourceHOReducer('users')],
+  listPages: ['@both timestamps', listPagesHOReducer],
   ongoing: ongoingReducer,
 });
