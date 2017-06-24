@@ -192,7 +192,7 @@ class AnimationGroup extends React.Component {
     .then(waitForAnimationFrame)
     .then(() => {
       Object.keys(this.animations).forEach(key => {
-        this.domNodes[key].style.transition = 'all 0.4s cubic-bezier(0,0,0.32,1)';
+        this.domNodes[key].style.transition = 'all 0.25s ease-out';
         this.domNodes[key].style.transform = this.animations[key].end.transform;
         this.domNodes[key].style.opacity = this.animations[key].end.opacity;
         this.domNodes[key].addEventListener('transitionend', () => {
@@ -293,5 +293,3 @@ AnimationGroup.propTypes = propTypes;
 AnimationGroup.defaultProps = defaultProps;
 
 export default AnimationGroup;
-
-
