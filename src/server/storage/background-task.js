@@ -36,107 +36,23 @@ const logger = new winston.Logger({
   ],
 });
 
-const MAX_ONGOING_REQUESTS = 50;
-
 const data = {
   items: {},
   lists: {},
   users: {},
 };
 
-const queue = new Heap(
-  (a, b) =>
-    a.priority === b.priority ? a.batchId < b.batchId : a.priority > b.priority
-);
+const requestAndPersist = (storageKey, id, url, priority) =>
+  getRequest(...args).then(tap(x => data[storageKey][id] = x));
 
-const queuedRequests = {};
-let latestBatchId = 0;
+const getItemRequest = (itemId, priority) =>
+  requestAndPersist('items', itemId, `${END_POINTS.ITEM}${itemId}.json`, priority);
 
-let nIdle = MAX_ONGOING_REQUESTS;
-function processNextRequestInQueue() {
-  if (nIdle === 0) return null;
-  if (queue.isEmpty()) return queue.trim();
+const getListRequest = (listId, priority) =>
+  requestAndPersist('lists', listId, END_POINTS[LISTS[listId]], priority);
 
-  let request;
-  do {
-    request = queue.poll();
-  } while (request.cancelled && !queue.isEmpty());
-  if (request.cancelled) return queue.trim();
-
-  nIdle--;
-  return fetch(request.url, {timeout: 2000})
-    .then(response => response.json())
-    .then(res => request.resolvers.forEach(({resolve}) => resolve(res)))
-    .catch(() => {
-      request.nTries++;
-      // logger.warn('request failed, requeueing it', { request, error })
-      return {requeue: true};
-    })
-    .then(({requeue} = {}) => {
-      nIdle++;
-      return requeue ? queue.add(request) : delete queuedRequests[request.id];
-    })
-    .then(processNextRequestInQueue);
-}
-
-const getRequest = (batchId, priority, url, id) =>
-  new Promise((resolve, reject) => {
-    let resolvers = [{resolve, reject}];
-
-    const competitor = queuedRequests[id];
-    if (competitor) {
-      if (priority > competitor.priority) {
-        competitor.cancelled = true;
-        resolvers = competitor.resolvers.concat(resolvers);
-      } else {
-        competitor.resolvers.push({resolve, reject});
-        return;
-      }
-    }
-
-    const request = {
-      id,
-      priority,
-      batchId,
-      url,
-      resolvers,
-      nTries: 0,
-    };
-    queuedRequests[id] = request;
-    queue.add(request);
-    processNextRequestInQueue();
-  });
-
-const getItemRequest = (batchId, priority, itemId) =>
-  getRequest(
-    batchId,
-    priority,
-    `${END_POINTS.ITEM}${itemId}.json`,
-    itemId
-  ).then(
-    R.tap(item => {
-      data.items[itemId] = item;
-    })
-  );
-
-const getListRequest = (batchId, priority, listId, persist = true) =>
-  getRequest(batchId, priority, END_POINTS[LISTS[listId]], listId).then(
-    R.tap(items => {
-      if (persist) data.lists[listId] = items;
-    })
-  );
-
-const getUserRequest = (batchId, priority, userId) =>
-  getRequest(
-    batchId,
-    priority,
-    `${END_POINTS.USER}${userId}.json`,
-    userId
-  ).then(
-    R.tap(user => {
-      data.users[userId] = user;
-    })
-  );
+const getUserRequest = (userId, priority) =>
+  requestAndPersist('users', userId, `${END_POINTS.USER}${userId}.json`, priority);
 
 const getList = listId =>
   data.lists[listId]
