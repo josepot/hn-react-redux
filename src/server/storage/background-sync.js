@@ -1,6 +1,6 @@
 /* eslint-disable no-param-reassign */
 const R = require('ramda');
-const {sliceListByPage} = require('./common');
+const {sliceListByPage} = require('../common');
 const {LISTS} = require('../../config.js');
 const getNow = require('lib/get-now-unix-time').default;
 

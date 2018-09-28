@@ -5,7 +5,7 @@ const http = require('http');
 const throng = require('throng');
 const WS = require('ws');
 
-const backgroundTask = require('./storage/background-task');
+const master = require('./master');
 
 const classifyBrowser = require('./plugins/classifyBrowser');
 const nodeAppServer = require('./app-server');
@@ -36,12 +36,12 @@ const start = id => {
 
 const throngOptions = process.env.NODE_ENV === 'production'
   ? {
-      master: () => backgroundTask({withSeed: true, withUpdates: true}),
+      master: () => master({withSeed: true, withUpdates: true}),
       start,
     }
   : {
       workers: 1,
-      master: () => backgroundTask({withUpdates: true}),
+      master: () => master({withUpdates: true}),
       start,
     };
 
