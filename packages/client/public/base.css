@@ -1,0 +1,26 @@
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  display: block;
+  font-size: 14px;
+  height: 100%;
+}
+
+body {
+  background-color: #F5F5F5;
+  font-family: 'Open Sans', 'Helvetica Neue', Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  min-width: 320px;
+  font-size: 14px;
+  line-height: 1.4285em;
+}
+
+a { text-decoration: none; }
