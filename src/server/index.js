@@ -41,7 +41,7 @@ const throngOptions = process.env.NODE_ENV === 'production'
     }
   : {
       workers: 1,
-      master: () => master({withUpdates: true}),
+      master: () => master({withSeed: true, withUpdates: true}),
       start,
     };
 

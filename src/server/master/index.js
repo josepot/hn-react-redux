@@ -1,11 +1,14 @@
-/* eslint-disable no-plusplus */
 const cluster = require('cluster');
 const winston = require('winston');
 const {__, complement, equals, isNil, propOr, range, tap} = require('ramda');
 
 const {sliceListByPage} = require('../common');
 const {LISTS, PAGE_SIZE} = require('../../config');
-const {getRequest, healthCheck: requestsHC} = require('./get-request');
+const {
+  setLogger,
+  getRequest,
+  healthCheck: requestsHC,
+} = require('./get-request');
 
 const LIST_IDS = Object.values(LISTS);
 
@@ -36,6 +39,7 @@ const logger = new winston.Logger({
     }),
   ],
 });
+setLogger(logger);
 
 const data = {
   items: {},
@@ -96,6 +100,7 @@ const getDescendants = async (rootId, priority) => {
   let item;
   try {
     item = await getItem(rootId, priority);
+    if (!item) return {};
   } catch (e) {
     return {};
   }
@@ -118,7 +123,7 @@ const getDescendantsSync = root =>
 const requestListPage = async (listId, page, priority, sendFn) => {
   const list = await getList(listId);
   const pageIds = sliceListByPage(list, page);
-  const items = await Promise.all(pageIds.map(x => getItem(priority, x)));
+  const items = await Promise.all(pageIds.map(x => getItem(x, priority)));
   sendFn({type: 'list', listId, page, list, items});
 };
 
@@ -206,7 +211,7 @@ const update = async delay => {
 };
 
 const healthCheck = delay => {
-  requestsHC(logger);
+  requestsHC();
   logger.info(
     `Health Check: There are ${Object.keys(data.items).length} items`
   );
@@ -229,8 +234,10 @@ module.exports = (
 
   if (withSeed) {
     logger.info('initialSeed started');
-    initialSeed();
+    initialSeed().then(() => {
+      if (withUpdates) update(10000);
+    });
   }
-  if (withUpdates) update(8000);
-  if (withHealthCheck) healthCheck(30000);
+  if (withUpdates && !withSeed) update(10000);
+  if (withHealthCheck) healthCheck(45000);
 };

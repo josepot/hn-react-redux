@@ -1,4 +1,4 @@
-const {PAGE_SIZE} = require('../../config.js');
+const {PAGE_SIZE} = require('../config.js');
 
 module.exports = {
   sliceListByPage: (list, pageBaseOne) => {

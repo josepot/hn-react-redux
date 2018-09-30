@@ -1,7 +1,7 @@
 const Heap = require('fastpriorityqueue');
 const fetch = require('node-fetch');
 
-const MAX_ONGOING_REQUESTS = 50;
+const MAX_ONGOING_REQUESTS = 5;
 
 const queuedRequests = {};
 const queue = new Heap(
@@ -10,6 +10,13 @@ const queue = new Heap(
 );
 
 let nIdle = MAX_ONGOING_REQUESTS;
+
+let logger;
+const setLogger = x => {
+  logger = x;
+};
+
+const delay = x => new Promise(res => setTimeout(res, x));
 
 async function processNextRequestInQueue() {
   if (nIdle === 0) return null;
@@ -29,8 +36,16 @@ async function processNextRequestInQueue() {
     delete queuedRequests[request.id];
   } catch (e) {
     request.nTries += 1;
-    if (request.nTries < 10) return queue.add(request);
+    logger.info('waiting', request.nTries, request.url, Date.now());
+    await delay(request.nTries * 500);
+    logger.info('done waiting', request.url, Date.now());
+    if (request.nTries < 60) return queue.add(request);
+    delete queuedRequests[request.id];
     request.resolvers.forEach(([, reject]) => reject(e));
+    logger.error(
+      `Request errored ${e.message}, ${request.url}`,
+      request.nTries
+    );
   } finally {
     nIdle += 1;
     processNextRequestInQueue();
@@ -69,11 +84,11 @@ const getRequest = (id, url, priority) =>
     processNextRequestInQueue();
   });
 
-const healthCheck = logger => {
+const healthCheck = () => {
   const nQueuedRequests = Object.keys(queuedRequests).length;
   logger.info(`Health Check: There are ${nQueuedRequests} queued requests`);
   logger.info(`Health Check: Is the queue empty? ${queue.isEmpty()}`);
   logger.info(`Health Check: There are ${nIdle} threats iddle`);
 };
 
-module.exports = {getRequest, healthCheck};
+module.exports = {getRequest, healthCheck, setLogger};
