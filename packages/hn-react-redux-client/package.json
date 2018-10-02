@@ -67,7 +67,7 @@
     "format:check": "prettier --list-different \"src/**/*.js\"",
     "lint": "eslint src test",
     "build": "cross-env NODE_ENV=production webpack",
-    "prepare": "npm run clean && npm run format:check && npm run lint && npm test && npm run build",
+    "prepare-old": "npm run clean && npm run format:check && npm run lint && npm test && npm run build",
     "test": "cross-env NODE_ENV=test jest",
     "start": "NODE_ENV=development webpack-dev-server"
   }
