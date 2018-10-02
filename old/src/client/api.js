@@ -30,13 +30,14 @@ const wsProtocol = protocol === 'https:' ? 'wss' : 'ws';
 
 export const sendToServiceWorker = async (endpoint, data) => {
   const message = JSON.stringify({endpoint, data});
-  if (!navigator.serviceWorker) return;
+  if (!navigator.serviceWorker) return null;
 
   const {active} = await navigator.serviceWorker.ready;
-  return active.postMessage(message)
+  return active.postMessage(message);
 };
 
-let ws, onEnd;
+let ws;
+let onEnd;
 const subscription = path => {
   const subscriptionUrl = `/api/subscription${path}`;
 
@@ -61,14 +62,9 @@ const subscription = path => {
   });
 };
 
-const listCall = fn = (listId, page) =>
-  fn(`/list/${listId}/${page}`);
-
-const discussionCall = fn => (itemId) =>
-  fn(`/discussion/${itemId}`);
-
-const userCall = fn => (userId) =>
-  subscription(`/user/${userId}`);
+const listCall = fn => (listId, page) => fn(`/list/${listId}/${page}`);
+const discussionCall = fn => itemId => fn(`/discussion/${itemId}`);
+const userCall = fn => userId => fn(`/user/${userId}`);
 
 export const subscribeToList = listCall(subscription);
 export const getList = listCall(apiFetch);

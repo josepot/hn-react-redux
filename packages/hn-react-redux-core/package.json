@@ -1,0 +1,17 @@
+{
+  "name": "hn-react-redux-core",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "devDependencies": {
+    "babel-eslint": "9.x",
+    "eslint": "^5.6.1",
+    "eslint-config-react-app": "^3.0.3",
+    "eslint-plugin-flowtype": "^2.50.3",
+    "eslint-plugin-import": "^2.14.0",
+    "eslint-plugin-jsx-a11y": "^6.1.1",
+    "eslint-plugin-prettier": "^3.0.0",
+    "eslint-plugin-react": "^7.11.1",
+    "prettier": "^1.14.3"
+  }
+}

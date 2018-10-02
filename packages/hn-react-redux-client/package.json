@@ -8,6 +8,7 @@
     "emotion": "^9.2.8",
     "emotion-theming": "^9.2.6",
     "history": "^4.7.2",
+    "hn-react-redux-core": "^1.0.0",
     "prop-types": "^15.6.2",
     "ramda": "^0.25.0",
     "re-reselect": "^2.1.0",

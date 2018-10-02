@@ -1,0 +1,42 @@
+{
+  "parser": "babel-eslint",
+  "extends": [
+    "airbnb",
+    "plugin:import/errors",
+    "plugin:import/warnings",
+    "plugin:react/recommended",
+    "prettier",
+    "prettier/react"
+  ],
+  "plugins": [
+    "import",
+    "react",
+    "jest",
+    "prettier"
+  ],
+  "env": {
+    "es6": true,
+    "browser": true,
+    "node": true,
+    "jest/globals": true
+  },
+  "settings": {
+    "import/resolver": {
+      "babel-module": {}
+    }
+  },
+  "rules": {
+    "import/prefer-default-export": 1,
+    "prettier/prettier": ["error", {
+      "singleQuote": true,
+      "trailingComma": "es5",
+      "bracketSpacing": false,
+      "jsxBracketSameLine": true,
+    }],
+    "no-nested-ternary": 0,
+    "no-underscore-dangle": 0,
+    "react/jsx-filename-extension": 0,
+    "react/forbid-prop-types": 0,
+    "react/require-default-props": 0
+  }
+}
